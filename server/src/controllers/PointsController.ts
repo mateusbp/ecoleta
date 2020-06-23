@@ -2,7 +2,7 @@ import { Request, Response } from 'express';
 import knex from '../database/connection';
 
 class pointsController {
-  async index(request: Request, response: Response) {
+  async index(request: Request, response: Response): Promise<Response> {
     const { city, uf, items } = request.query;
 
     const parsedItems = String(items)
@@ -20,7 +20,7 @@ class pointsController {
     return response.json(points);
   }
 
-  async show(request: Request, response: Response) {
+  async show(request: Request, response: Response): Promise<Response> {
     const { id } = request.params;
 
     const point = await knex('points').where('id', id).first();
@@ -37,7 +37,7 @@ class pointsController {
     return response.json({ point, items });
   }
 
-  async create(request: Request, response: Response) {
+  async create(request: Request, response: Response): Promise<Response> {
     const {
       name,
       email,
@@ -52,7 +52,7 @@ class pointsController {
     const trx = await knex.transaction();
 
     const point = {
-      image: 'https://images.unsplash.com/photo-1556767576-5ec41e3239ea?ixlib=rb-1.2.1&ixid=eyJhcHBfaWQiOjEyMDd9&auto=format&fit=crop&w=400&q=60',
+      image: request.file.filename,
       name,
       email,
       whatsapp,
@@ -66,12 +66,15 @@ class pointsController {
 
     const point_id = insertedIds[0];
 
-    const pointItems = items.map((item_id: number) => {
-      return {
-        item_id,
-        point_id,
-      };
-    });
+    const pointItems = items
+      .split(',')
+      .map((item: string) => Number(item.trim()))
+      .map((item_id: number) => {
+        return {
+          item_id,
+          point_id,
+        };
+      });
 
     await trx('point_items').insert(pointItems);
 
